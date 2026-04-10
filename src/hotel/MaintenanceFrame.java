@@ -1,9 +1,9 @@
 package hotel;
 
+
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.*;
@@ -42,7 +42,7 @@ public class MaintenanceFrame extends JFrame implements ActionListener {
 
         JLabel lroomId = new JLabel("Room:");
         JLabel lempId = new JLabel("Employee:");
-        JLabel ldate = new JLabel("Date (YYYY-MM-DD):");
+        JLabel ldate = new JLabel("Date (DD-MM-YYYY):");
         JLabel ldescription = new JLabel("Description:");
 
         Font labelFont = new Font("Arial", Font.PLAIN, 16);
@@ -171,6 +171,11 @@ public class MaintenanceFrame extends JFrame implements ActionListener {
                 String dateText = tdate.getText().trim();
                 String description = tdescription.getText().trim();
 
+                if (!Validator.isValidDate(dateText)) {
+                    JOptionPane.showMessageDialog(this, "Invalid date. Use format DD-MM-YYYY.");
+                    return;
+                }
+
                 Connection con = DBConnection.getConnection();
 
                 String query = "INSERT INTO maintenance (room_id, emp_id, date, description) VALUES (?, ?, ?, ?)";
@@ -178,7 +183,7 @@ public class MaintenanceFrame extends JFrame implements ActionListener {
 
                 pst.setInt(1, roomId);
                 pst.setInt(2, empId);
-                pst.setDate(3, Date.valueOf(dateText));
+                pst.setDate(3, Validator.parseSqlDate(dateText));
                 pst.setString(4, description);
 
                 pst.executeUpdate();

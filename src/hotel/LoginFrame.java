@@ -1,5 +1,4 @@
 package hotel;
-
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -13,6 +12,7 @@ public class LoginFrame extends JFrame implements ActionListener {
     JButton loginButton, clearButton;
 
     LoginFrame(String title) {
+    	
         super(title);
 
         setLayout(new GridBagLayout());   

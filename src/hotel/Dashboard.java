@@ -9,6 +9,7 @@ public class Dashboard extends JFrame implements ActionListener {
     JButton bHotel, bEmployee, bCustomer, bRoomType, bRoom, bService;
     JButton bBooking, bPayment, bServiceUsed, bMaintenance;
     JButton bViewRooms, bViewBookings, bCheckout, bExit;
+    JButton bManageCustomers, bManageHotels, bManageEmployees;
 
     Dashboard(String title) {
         super(title);
@@ -20,7 +21,7 @@ public class Dashboard extends JFrame implements ActionListener {
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         add(titleLabel, BorderLayout.NORTH);
 
-        JPanel panel = new JPanel(new GridLayout(5, 3, 15, 15));
+        JPanel panel = new JPanel(new GridLayout(6, 3, 15, 15));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
 
         bHotel = new JButton("Add Hotel");
@@ -38,6 +39,10 @@ public class Dashboard extends JFrame implements ActionListener {
         bMaintenance = new JButton("Maintenance");
         bViewRooms = new JButton("View Rooms");
         bViewBookings = new JButton("View Bookings");
+
+        bManageCustomers = new JButton("Manage Customers");
+        bManageHotels = new JButton("Manage Hotels");
+        bManageEmployees = new JButton("Manage Employees");
 
         bCheckout = new JButton("Checkout");
         bExit = new JButton("Exit");
@@ -58,6 +63,10 @@ public class Dashboard extends JFrame implements ActionListener {
         panel.add(bViewRooms);
         panel.add(bViewBookings);
 
+        panel.add(bManageHotels);
+        panel.add(bManageEmployees);
+        panel.add(bManageCustomers);
+
         panel.add(bCheckout);
         panel.add(new JLabel("")); 
         panel.add(bExit);
@@ -76,10 +85,13 @@ public class Dashboard extends JFrame implements ActionListener {
         bMaintenance.addActionListener(this);
         bViewRooms.addActionListener(this);
         bViewBookings.addActionListener(this);
+        bManageHotels.addActionListener(this);
+        bManageEmployees.addActionListener(this);
+        bManageCustomers.addActionListener(this);
         bCheckout.addActionListener(this);
         bExit.addActionListener(this);
 
-        setSize(700, 500);
+        setSize(700, 550);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
@@ -117,10 +129,19 @@ public class Dashboard extends JFrame implements ActionListener {
         new MaintenanceFrame("Maintenance");
     }
     else if (e.getSource() == bViewRooms) {
-        new ViewRoomsFrame("View Rooms");
+        new ViewRoomsFrame("Manage Rooms");
     }
     else if (e.getSource() == bViewBookings) {
-        new ViewBookingsFrame("View Bookings");
+        new ViewBookingsFrame("Manage Bookings");
+    }
+    else if (e.getSource() == bManageHotels) {
+        new ManageHotelsFrame("Manage Hotels");
+    }
+    else if (e.getSource() == bManageEmployees) {
+        new ManageEmployeesFrame("Manage Employees");
+    }
+    else if (e.getSource() == bManageCustomers) {
+        new ManageCustomersFrame("Manage Customers");
     }
     else if (e.getSource() == bCheckout) {
         new CheckoutFrame("Checkout");

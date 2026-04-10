@@ -1,0 +1,71 @@
+# Project Structural Analysis & OOP Breakdown
+
+Below is the full technical breakdown rounding up all the error handling built into your hotel management system, your CRUD capabilities, and the Object-Oriented paradigms (Inheritance, Polymorphism) utilized throughout the codebase.
+
+---
+
+## 1. Error Handling Implemented
+
+A unified, multi-layered approach to safely capturing bad data and failing gracefully using `try-catch` blocks and `Validator` regex logic.
+
+### Form Validations (Centralized via `Validator.java`)
+- **Email Validation**: Enforces standard `user@domain.com` alphanumeric formats.
+- **Phone Validation**: Ensures exactly 10-digit numbers starting specifically with a 7, 8, or 9.
+- **ID Proof Strict Check**: Verifies inputs matching either standard 12-digit continuous Aadhar format or PAN Card format (5 letters, 4 numbers, 1 letter).
+- **Date Formatting Constraints**: Rigorously requires `DD-MM-YYYY`. Any malformed input throws an error popup rather than crashing the database parser.
+- **Chronological Date Checks**: Contains `isBeforeOrEqual()` to stop employees from accidentally submitting a Booking `Check Out` date that happens *before* the `Check In`.
+- **Numeric Limits**: Rejects numbers out of logical bounds (e.g., negative Salaries, or Hotel Ratings outside of 0.0 to 5.0).
+
+### Try-Catch Level Exception Handlings
+- **NumberFormatException**: Successfully captures and safely alerts the user if they input letters or invisible spaces into fields expecting integers or decimals (e.g., Prices, Salaries, Number of Guests).
+- **SQLIntegrityConstraintViolationException**: Traps Foreign Key errors! E.g. If the user tries to assign an Employee to a nonexistent Hotel ID, or tries to delete a Hotel that currently has active Room records tied to it.
+- **SQLSyntaxErrorException**: Captures backend database mismatches cleanly.
+- **ParseException / IllegalArgumentException**: Thrown and caught when translating String dates into literal `java.sql.Date` objects bounds.
+
+---
+
+## 2. All Add, Update, and Delete Functions (CRUD)
+
+All of these rely on standard parameterized `PreparedStatement` logic to prevent SQL injection.
+
+### **Add (Insert) Modules**
+Generally driven by the custom "Save" button (`bsave`) inside:
+- `AddCustomerFrame.java`: Inserts into `customer` table.
+- `AddEmployeeFrame.java`: Inserts into `employee`. 
+- `AddHotelFrame.java`: Inserts into `hotel`.
+- `AddRoomFrame.java`: Inserts into `room`.
+- `AddRoomTypeFrame.java`: Inserts into `room_type`.
+- `BookRoomFrame.java`: Inserts into `booking` AND also fires an automatic `UPDATE` to the `room` table to change its status to 'Occupied'.
+- `ServiceUsedFrame.java`: Inserts into `service_usage`.
+- `PaymentFrame.java`: Depending on if the booking has paid before, either Inserts a new record into `payment` or updates it.
+- `MaintenanceFrame.java`: Inserts into `maintenance`.
+
+### **Update & Delete Modules**
+Driven by "Update Info" (`bUpdate`) and "Delete" (`bDelete`) functionality attached to live visual tables inside:
+- `ManageCustomersFrame.java`: Edits phone/email, deletes customer profiles.
+- `ManageEmployeesFrame.java`: Edits designation/phone/salary, deletes staff records.
+- `ManageHotelsFrame.java`: Edits rating/contact info, deletes location.
+
+---
+
+## 3. Object-Oriented Paradigm: Polymorphism
+
+**Polymorphism** (the ability for different objects to respond differently to the same action) is heavily utilized through **Method Overriding**:
+- Every single GUI frame implements the `ActionListener` interface. Thus, they all share an identically named method: `public void actionPerformed(ActionEvent e)`. 
+- Polymorphism allows Java to fire off `actionPerformed()`, yet every different Frame acts fundamentally differently on button presses (one saves a customer, another deletes a hotel,, another resets fields).
+- Same applies to `ItemListener` used in `PaymentFrame` via its overriden `public void itemStateChanged(ItemEvent e)` to dynamically reload databases based on dropdowns.
+
+---
+
+## 4. Object-Oriented Paradigm: Inheritance
+
+**Inheritance** guarantees standardized windows and component rendering without writing window-creation code from scratch.
+- **`extends JFrame`**: You will see this on the class definition of every visual class (e.g., `public class BookRoomFrame extends JFrame`). This inherits all the base Java Swing capabilities allowing methods like `setSize()`, `setLocationRelativeTo()`, and `getContentPane()` to exist directly on your classes natively!
+
+---
+
+## 5. Access Modifiers Used
+
+1. **`public`**: Used on Constructors and the overridden interface methods (like `actionPerformed`). Essential so the JVM and Swing components can trigger them from anywhere. The `Validator` methods are entirely `public static` allowing the whole project global access to the regex logic.
+2. **`private`**: Used to encapsulate sensitive internal background functions heavily. E.g., `private void loadHotels()`, `private void loadSelectedBookingDetails()`, `private boolean paymentExists()`. These cannot be accessed outside the frame running them, protecting the database connections.
+3. **`default` (package-private)**: Leaving off access modifiers entirely! (e.g., `JLabel titleLabel;` or `AddCustomerFrame(String title)`). This ensures components are only accessible to other java files contained within the exact same `hotel` folder package.

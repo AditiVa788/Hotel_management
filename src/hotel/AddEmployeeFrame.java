@@ -1,5 +1,6 @@
 package hotel;
 
+
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Connection;
@@ -158,7 +159,22 @@ public class AddEmployeeFrame extends JFrame implements ActionListener {
                 String name = tname.getText().trim();
                 String designation = tdesignation.getText().trim();
                 String phone = tphone.getText().trim();
-                double salary = Double.parseDouble(tsalary.getText().trim());
+                double salary;
+                try {
+                	salary = Double.parseDouble(tsalary.getText().trim());
+                } catch (NumberFormatException ex) {
+                	JOptionPane.showMessageDialog(this, "Please enter a valid numeric value for Salary.");
+                    return;
+                }
+
+                if (!Validator.isValidPhone(phone)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Phone. Must be 10 digits starting with 7, 8, or 9.");
+                    return;
+                }
+                if (!Validator.isValidSalary(salary)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Salary. Must be greater than or equal to 0.");
+                    return;
+                }
 
                 String hotelItem = (String) cbHotelId.getSelectedItem();
                 int hotelId = Integer.parseInt(hotelItem.split(" - ")[0]);

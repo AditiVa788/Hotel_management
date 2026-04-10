@@ -41,7 +41,7 @@ public class ServiceUsedFrame extends JFrame implements ActionListener {
 
         JLabel lbookingId = new JLabel("Booking:");
         JLabel lserviceId = new JLabel("Service:");
-        JLabel lusageDate = new JLabel("Usage Date (YYYY-MM-DD):");
+        JLabel lusageDate = new JLabel("Usage Date (DD-MM-YYYY):");
         JLabel lquantity = new JLabel("Quantity:");
 
         Font labelFont = new Font("Arial", Font.PLAIN, 16);
@@ -166,14 +166,19 @@ public class ServiceUsedFrame extends JFrame implements ActionListener {
                 String usageDate = tusageDate.getText().trim();
                 int quantity = Integer.parseInt(tquantity.getText().trim());
 
+                if (!Validator.isValidDate(usageDate)) {
+                    JOptionPane.showMessageDialog(this, "Usage Date must be in DD-MM-YYYY format.");
+                    return;
+                }
+
                 Connection con = DBConnection.getConnection();
 
-                String query = "INSERT INTO service_used (booking_id, service_id, date, quantity) VALUES (?, ?, ?, ?)";
+                String query = "INSERT INTO service_usage (booking_id, service_id, date, quantity) VALUES (?, ?, ?, ?)";
                 PreparedStatement pst = con.prepareStatement(query);
 
                 pst.setInt(1, bookingId);
                 pst.setInt(2, serviceId);
-                pst.setString(3, usageDate);
+                pst.setDate(3, Validator.parseSqlDate(usageDate));
                 pst.setInt(4, quantity);
 
                 pst.executeUpdate();

@@ -1,5 +1,6 @@
 package hotel;
 
+
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Connection;
@@ -146,12 +147,38 @@ public class AddHotelFrame extends JFrame implements ActionListener {
         if (e.getSource() == bsave) {
             try {
                 String name = tname.getText();
-                double rating = Double.parseDouble(trating.getText());
+                String ratingStr = trating.getText();
                 String street = tstreet.getText();
                 String city = tcity.getText();
                 String landmark = tlandmark.getText();
                 String phone = tphone.getText();
                 String email = temail.getText();
+
+                if (name.trim().isEmpty() || street.trim().isEmpty() || city.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please fill all required fields.");
+                    return;
+                }
+
+                double rating;
+                try {
+                    rating = Double.parseDouble(ratingStr);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Please enter a valid numeric value for Rating.");
+                    return;
+                }
+
+                if (!Validator.isValidRating(rating)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Rating. Must be between 0.0 and 5.0.");
+                    return;
+                }
+                if (!Validator.isValidPhone(phone)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Phone. Must be 10 digits starting with 7, 8, or 9.");
+                    return;
+                }
+                if (!Validator.isValidEmail(email)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Email format.");
+                    return;
+                }
 
                 Connection con = DBConnection.getConnection();
 

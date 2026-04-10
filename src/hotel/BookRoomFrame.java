@@ -1,5 +1,6 @@
 package hotel;
 
+
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Connection;
@@ -42,9 +43,9 @@ public class BookRoomFrame extends JFrame implements ActionListener {
         JLabel lcustomerId = new JLabel("Customer:");
         JLabel lroomId = new JLabel("Room:");
         JLabel lguests = new JLabel("No. of Guests:");
-        JLabel lcheckIn = new JLabel("Check In (YYYY-MM-DD):");
-        JLabel lcheckOut = new JLabel("Check Out (YYYY-MM-DD):");
-        JLabel lbookingDate = new JLabel("Booking Date (YYYY-MM-DD):");
+        JLabel lcheckIn = new JLabel("Check In (DD-MM-YYYY):");
+        JLabel lcheckOut = new JLabel("Check Out (DD-MM-YYYY):");
+        JLabel lbookingDate = new JLabel("Booking Date (DD-MM-YYYY):");
         JLabel lstatus = new JLabel("Booking Status:");
 
         Font labelFont = new Font("Arial", Font.PLAIN, 16);
@@ -202,6 +203,16 @@ public class BookRoomFrame extends JFrame implements ActionListener {
                 String bookingDate = tbookingDate.getText().trim();
                 String status = (String) cbStatus.getSelectedItem();
 
+                if (!Validator.isValidDate(checkIn) || !Validator.isValidDate(checkOut) || !Validator.isValidDate(bookingDate)) {
+                    JOptionPane.showMessageDialog(this, "Dates must be in DD-MM-YYYY format.");
+                    return;
+                }
+
+                if (!Validator.isBeforeOrEqual(checkIn, checkOut)) {
+                    JOptionPane.showMessageDialog(this, "Error: Check In date cannot be after Check Out date.");
+                    return;
+                }
+
                 Connection con = DBConnection.getConnection();
 
                 String query = "INSERT INTO booking (customer_id, room_id, no_of_guests, check_in, check_out, booking_date, booking_status) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -210,9 +221,9 @@ public class BookRoomFrame extends JFrame implements ActionListener {
                 pst.setInt(1, customerId);
                 pst.setInt(2, roomId);
                 pst.setInt(3, guests);
-                pst.setString(4, checkIn);
-                pst.setString(5, checkOut);
-                pst.setString(6, bookingDate);
+                pst.setDate(4, Validator.parseSqlDate(checkIn));
+                pst.setDate(5, Validator.parseSqlDate(checkOut));
+                pst.setDate(6, Validator.parseSqlDate(bookingDate));
                 pst.setString(7, status);
 
                 pst.executeUpdate();

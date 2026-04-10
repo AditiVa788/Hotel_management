@@ -10,6 +10,7 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
 
     JComboBox<String> cbBookingId, cbPaymentMode, cbPaymentStatus;
     JTextField tpaymentDate, tamount;
+    JLabel ltotalBillValue;
     JButton bsave, bclear;
 
     PaymentFrame(String title) {
@@ -38,19 +39,26 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JLabel lbookingId = new JLabel("Booking ID:");
-        JLabel lpaymentDate = new JLabel("Payment Date (YYYY-MM-DD):");
+        JLabel ltotalBillTitle = new JLabel("Calculated Total Bill:");
+        JLabel lpaymentDate = new JLabel("Payment Date (DD-MM-YYYY):");
         JLabel lpaymentMode = new JLabel("Payment Mode:");
         JLabel lpaymentStatus = new JLabel("Payment Status:");
-        JLabel lamount = new JLabel("Amount:");
+        JLabel lamount = new JLabel("Total Amount Paid:");
 
         Font labelFont = new Font("Arial", Font.PLAIN, 16);
         Font fieldFont = new Font("Arial", Font.PLAIN, 16);
+        Font boldFont = new Font("Arial", Font.BOLD, 16);
 
         lbookingId.setFont(labelFont);
+        ltotalBillTitle.setFont(labelFont);
         lpaymentDate.setFont(labelFont);
         lpaymentMode.setFont(labelFont);
         lpaymentStatus.setFont(labelFont);
-        lamount.setFont(labelFont);
+        lamount.setFont(boldFont);
+
+        ltotalBillValue = new JLabel("Calculated Automatically");
+        ltotalBillValue.setFont(boldFont);
+        ltotalBillValue.setForeground(new Color(0, 102, 204));
 
         cbBookingId = new JComboBox<>();
         cbPaymentMode = new JComboBox<>(new String[] {"Cash", "Card", "UPI", "Net Banking"});
@@ -65,39 +73,39 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
         tpaymentDate.setFont(fieldFont);
         tamount.setFont(fieldFont);
 
-        tamount.setEditable(false);
+        tamount.setEditable(true); // WE UNLOCKED THE AMOUNT!
 
         loadBookingIds();
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
+        gbc.gridx = 0; gbc.gridy = 0;
         formPanel.add(lbookingId, gbc);
         gbc.gridx = 1;
         formPanel.add(cbBookingId, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 1;
+        formPanel.add(ltotalBillTitle, gbc);
+        gbc.gridx = 1;
+        formPanel.add(ltotalBillValue, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2;
         formPanel.add(lpaymentDate, gbc);
         gbc.gridx = 1;
         formPanel.add(tpaymentDate, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridx = 0; gbc.gridy = 3;
         formPanel.add(lpaymentMode, gbc);
         gbc.gridx = 1;
         formPanel.add(cbPaymentMode, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        formPanel.add(lpaymentStatus, gbc);
-        gbc.gridx = 1;
-        formPanel.add(cbPaymentStatus, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridx = 0; gbc.gridy = 4;
         formPanel.add(lamount, gbc);
         gbc.gridx = 1;
         formPanel.add(tamount, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 5;
+        formPanel.add(lpaymentStatus, gbc);
+        gbc.gridx = 1;
+        formPanel.add(cbPaymentStatus, gbc);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setBackground(Color.WHITE);
@@ -133,7 +141,7 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
             loadSelectedBookingDetails();
         }
 
-        setSize(700, 500);
+        setSize(700, 550);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setVisible(true);
@@ -166,14 +174,16 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
                 cbPaymentMode.setSelectedIndex(0);
                 cbPaymentStatus.setSelectedIndex(0);
                 tamount.setText("");
+                ltotalBillValue.setText("0.0");
                 return;
             }
 
             int bookingId = Integer.parseInt((String) cbBookingId.getSelectedItem());
             Connection con = DBConnection.getConnection();
 
+            // 1. Calculate Room Cost
             String amountQuery =
-                "SELECT rt.base_price " +
+                "SELECT GREATEST(DATEDIFF(b.check_out, b.check_in), 1) as stay_days, rt.base_price " +
                 "FROM booking b " +
                 "JOIN room r ON b.room_id = r.room_id " +
                 "JOIN room_type rt ON r.type_id = rt.type_id " +
@@ -183,12 +193,32 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
             pstAmount.setInt(1, bookingId);
             ResultSet rsAmount = pstAmount.executeQuery();
 
+            double roomCost = 0.0;
             if (rsAmount.next()) {
-                tamount.setText(rsAmount.getString("base_price"));
-            } else {
-                tamount.setText("");
+                int days = rsAmount.getInt("stay_days");
+                double basePrice = rsAmount.getDouble("base_price");
+                roomCost = days * basePrice;
             }
+            
+            // 2. Calculate Services Cost
+            String serviceQuery = 
+                "SELECT COALESCE(SUM(su.quantity * s.price), 0) AS service_total " +
+                "FROM service_usage su " +
+                "JOIN service s ON su.service_id = s.service_id " +
+                "WHERE su.booking_id = ?";
+            PreparedStatement pstService = con.prepareStatement(serviceQuery);
+            pstService.setInt(1, bookingId);
+            ResultSet rsService = pstService.executeQuery();
+            
+            double serviceCost = 0.0;
+            if (rsService.next()) {
+                serviceCost = rsService.getDouble("service_total");
+            }
+            
+            double totalBill = roomCost + serviceCost;
+            ltotalBillValue.setText(String.format("%.2f", totalBill));
 
+            // Load Existing Payment Details
             String paymentQuery =
                 "SELECT payment_date, payment_mode, payment_status, amount " +
                 "FROM payment WHERE booking_id = ?";
@@ -199,37 +229,35 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
 
             if (rsPayment.next()) {
                 Date paymentDate = rsPayment.getDate("payment_date");
-                tpaymentDate.setText(paymentDate == null ? "" : paymentDate.toString());
+                if (paymentDate != null) {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy");
+                    tpaymentDate.setText(sdf.format(paymentDate));
+                } else {
+                    tpaymentDate.setText("");
+                }
 
                 String paymentMode = rsPayment.getString("payment_mode");
                 String paymentStatus = rsPayment.getString("payment_status");
                 String savedAmount = rsPayment.getString("amount");
 
-                if (paymentMode != null) {
-                    cbPaymentMode.setSelectedItem(paymentMode);
-                } else {
-                    cbPaymentMode.setSelectedIndex(0);
-                }
+                if (paymentMode != null) cbPaymentMode.setSelectedItem(paymentMode);
+                else cbPaymentMode.setSelectedIndex(0);
 
-                if (paymentStatus != null) {
-                    cbPaymentStatus.setSelectedItem(paymentStatus);
-                } else {
-                    cbPaymentStatus.setSelectedIndex(0);
-                }
+                if (paymentStatus != null) cbPaymentStatus.setSelectedItem(paymentStatus);
+                else cbPaymentStatus.setSelectedIndex(0);
 
-                if (savedAmount != null) {
-                    tamount.setText(savedAmount);
-                }
+                if (savedAmount != null) tamount.setText(savedAmount);
             } else {
                 tpaymentDate.setText("");
                 cbPaymentMode.setSelectedIndex(0);
                 cbPaymentStatus.setSelectedIndex(0);
+                tamount.setText("0.0"); // Start paid amount at 0
             }
 
             con.close();
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error loading booking details.");
+            JOptionPane.showMessageDialog(this, "Error loading booking details: " + ex.getMessage());
         }
     }
 
@@ -267,6 +295,11 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
                 String paymentStatus = (String) cbPaymentStatus.getSelectedItem();
                 double amount = Double.parseDouble(tamount.getText().trim());
 
+                if (!paymentDateText.isEmpty() && !Validator.isValidDate(paymentDateText)) {
+                    JOptionPane.showMessageDialog(this, "Payment Date must be in DD-MM-YYYY format.");
+                    return;
+                }
+
                 Connection con = DBConnection.getConnection();
 
                 if (paymentExists(con, bookingId)) {
@@ -277,11 +310,8 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
 
                     PreparedStatement pst = con.prepareStatement(updateQuery);
 
-                    if (paymentDateText.isEmpty()) {
-                        pst.setNull(1, Types.DATE);
-                    } else {
-                        pst.setDate(1, Date.valueOf(paymentDateText));
-                    }
+                    if (paymentDateText.isEmpty()) pst.setNull(1, Types.DATE);
+                    else pst.setDate(1, Validator.parseSqlDate(paymentDateText));
 
                     pst.setString(2, paymentMode);
                     pst.setString(3, paymentStatus);
@@ -296,14 +326,10 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
                         "VALUES (?, ?, ?, ?, ?)";
 
                     PreparedStatement pst = con.prepareStatement(insertQuery);
-
                     pst.setInt(1, bookingId);
 
-                    if (paymentDateText.isEmpty()) {
-                        pst.setNull(2, Types.DATE);
-                    } else {
-                        pst.setDate(2, Date.valueOf(paymentDateText));
-                    }
+                    if (paymentDateText.isEmpty()) pst.setNull(2, Types.DATE);
+                    else pst.setDate(2, Validator.parseSqlDate(paymentDateText));
 
                     pst.setString(3, paymentMode);
                     pst.setString(4, paymentStatus);
@@ -319,11 +345,11 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Please enter valid numeric values.");
             } catch (IllegalArgumentException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid date. Use format YYYY-MM-DD.");
+                JOptionPane.showMessageDialog(this, "Invalid date. Use format DD-MM-YYYY.");
             } catch (java.sql.SQLIntegrityConstraintViolationException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid Booking ID! Please enter a booking ID that already exists.");
+                JOptionPane.showMessageDialog(this, "Invalid Booking ID!");
             } catch (java.sql.SQLSyntaxErrorException ex) {
-                JOptionPane.showMessageDialog(this, "Database column mismatch. Please contact developer.");
+                JOptionPane.showMessageDialog(this, "Database column mismatch.");
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Something went wrong. Please try again.");
             }
@@ -333,7 +359,7 @@ public class PaymentFrame extends JFrame implements ActionListener, ItemListener
             tpaymentDate.setText("");
             cbPaymentMode.setSelectedIndex(0);
             cbPaymentStatus.setSelectedIndex(0);
-            tamount.setText("");
+            if (cbBookingId.getItemCount() > 0) cbBookingId.setSelectedIndex(0);
         }
     }
 }

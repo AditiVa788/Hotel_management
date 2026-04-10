@@ -9,7 +9,8 @@ import javax.swing.border.EmptyBorder;
 
 public class AddCustomerFrame extends JFrame implements ActionListener {
 
-    JTextField tname, tgender, tdob, tidProof, tphone, temail, taddress, tcity, tlandmark;
+    JTextField tname, tdob, tidProof, tphone, temail, taddress, tcity, tlandmark;
+    JComboBox<String> cbGender;
     JButton bsave, bclear;
 
     AddCustomerFrame(String title) {
@@ -39,7 +40,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
 
         JLabel lname = new JLabel("Name:");
         JLabel lgender = new JLabel("Gender:");
-        JLabel ldob = new JLabel("DOB:");
+        JLabel ldob = new JLabel("DOB (DD-MM-YYYY):");
         JLabel lidProof = new JLabel("ID Proof:");
         JLabel lphone = new JLabel("Phone:");
         JLabel lemail = new JLabel("Email:");
@@ -61,7 +62,8 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
         llandmark.setFont(labelFont);
 
         tname = new JTextField(18);
-        tgender = new JTextField(18);
+        cbGender = new JComboBox<>(new String[] {"Male", "Female", "Transgender", "Other"});
+        cbGender.setBackground(Color.WHITE);
         tdob = new JTextField(18);
         tidProof = new JTextField(18);
         tphone = new JTextField(18);
@@ -71,7 +73,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
         tlandmark = new JTextField(18);
 
         tname.setFont(fieldFont);
-        tgender.setFont(fieldFont);
+        cbGender.setFont(fieldFont);
         tdob.setFont(fieldFont);
         tidProof.setFont(fieldFont);
         tphone.setFont(fieldFont);
@@ -88,7 +90,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         formPanel.add(lgender, gbc);
         gbc.gridx = 1; gbc.weightx = 1;
-        formPanel.add(tgender, gbc);
+        formPanel.add(cbGender, gbc);
 
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         formPanel.add(ldob, gbc);
@@ -164,7 +166,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
         if (e.getSource() == bsave) {
             try {
                 String name = tname.getText();
-                String gender = tgender.getText();
+                String gender = (String) cbGender.getSelectedItem();
                 String dob = tdob.getText();
                 String idProof = tidProof.getText();
                 String phone = tphone.getText();
@@ -172,15 +174,38 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
                 String address = taddress.getText();
                 String city = tcity.getText();
                 String landmark = tlandmark.getText();
+                
+                if (name.trim().isEmpty() || gender.trim().isEmpty() || address.trim().isEmpty() || city.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please fill all required fields.");
+                    return;
+                }
+
+                if (!Validator.isValidDate(dob)) {
+                    JOptionPane.showMessageDialog(this, "Invalid DOB format. Please use DD-MM-YYYY.");
+                    return;
+                }
+                if (!Validator.isValidIdProof(idProof)) {
+                    JOptionPane.showMessageDialog(this, "Invalid ID Proof. Must be 12-digit Aadhar or PAN format.");
+                    return;
+                }
+                if (!Validator.isValidPhone(phone)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Phone. Must be 10 digits starting with 7, 8, or 9.");
+                    return;
+                }
+                if (!Validator.isValidEmail(email)) {
+                    JOptionPane.showMessageDialog(this, "Invalid Email format.");
+                    return;
+                }
 
                 Connection con = DBConnection.getConnection();
 
                 String query = "INSERT INTO customer (name, gender, dob, id_proof, phone, email, street_no, city, landmark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 PreparedStatement pst = con.prepareStatement(query);
 
+
                 pst.setString(1, name);
                 pst.setString(2, gender);
-                pst.setString(3, dob);
+                pst.setDate(3, Validator.parseSqlDate(dob));
                 pst.setString(4, idProof);
                 pst.setString(5, phone);
                 pst.setString(6, email);
@@ -193,7 +218,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
                 JOptionPane.showMessageDialog(this, "Customer added successfully!");
 
                 tname.setText("");
-                tgender.setText("");
+                cbGender.setSelectedIndex(0);
                 tdob.setText("");
                 tidProof.setText("");
                 tphone.setText("");
@@ -219,7 +244,7 @@ public class AddCustomerFrame extends JFrame implements ActionListener {
 
         if (e.getSource() == bclear) {
             tname.setText("");
-            tgender.setText("");
+            cbGender.setSelectedIndex(0);
             tdob.setText("");
             tidProof.setText("");
             tphone.setText("");
